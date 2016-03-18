@@ -1,0 +1,324 @@
+Activity 7 Norming Data
+M. Lewis 
+24 July 2014
+=======  
+   
+Load packages and read in data
+```{r include = FALSE}
+#load pacakges
+library(ggplot2)
+library(boot)
+library(reshape)
+library(stringr)
+source("/Documents/GRADUATE_SCHOOL/Ranalysis/useful.R")
+
+#read in data
+effort <- read.csv("/Documents/CaLL/from work computer/Experiments/Activity/Data_Organized/Norming Studies/data/Activity7_effortMTurk.csv")
+loud <-  read.csv("/Documents/CaLL/from work computer/Experiments/Activity/Data_Organized/Norming Studies/data/Activity7_loudnessMTurk.csv")
+item<- read.csv("/Documents/CaLL/from work computer/Experiments/Activity/Data_Organized/Norming Studies/data/Activity7_item_data.csv")
+```
+
+## Analyze effort survey
+Get data in long form and add condition information
+```{r}
+
+effort = effort[effort$Is.English.your.native.language. == "Y",]
+md<- melt(effort,id.vars=names(effort)[c(1:5,68)],)
+names(md)[c(7,8)] = c("word", "rating")
+  
+index <- match(md$word, item$Word)
+md$condition <- item$Condition[index]
+md$condition2 <- item$Condition2[index]
+md$experiment <- as.factor(item$Experiment[index])
+
+```
+
+## plot by condition 1
+```{r}
+ms <- aggregate(rating ~ condition, md, mean)
+ms$cih <- aggregate(rating ~ condition, data=md, ci.high)$rating
+ms$cil <- aggregate(rating ~ condition, data=md, ci.low)$rating
+
+# rename factors
+ms$condition <- factor(c("mouth", "foot", "vocal"))
+
+#plot
+ ggplot(ms, aes(fill=condition, y=rating, x=condition)) +
+geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=ms, mapping=aes(x=condition, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw( ) +
+  xlab(" Category") + 
+  ylab("Effort Rating") +
+  ylim(0,7) +
+    theme(axis.title=element_text(size=20), axis.text=element_text(size=15), title = element_text(size=20)) +
+ggtitle ("By condition")
+
+```
+
+##plot by condition 2
+```{r}
+ms <- aggregate(rating ~ condition2, md, mean)
+ms$cih <- aggregate(rating ~ condition2, data=md, ci.high)$rating
+ms$cil <- aggregate(rating ~ condition2, data=md, ci.low)$rating
+
+# rename factors
+ms$condition2 <- factor(c("high effort vocal" ,"low effort vocal"))
+
+#plot
+ ggplot(ms, aes(fill=condition2, y=rating, x=condition2)) +
+geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=ms, mapping=aes(x=condition2, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw( ) +
+  xlab(" Category") + 
+  ylab("Effort Rating") +
+  ylim(0,7) +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15), title = element_text(size=20)) +
+  ggtitle ("High vs. low vocal words") 
+
+```
+
+## plot by item (PAPER PLOT)
+```{r}
+mse <- aggregate(rating ~ word + condition, md, mean)
+mse$cih <- aggregate(rating ~ word + condition, data=md, ci.high)$rating
+mse$cil <- aggregate(rating ~ word + condition, data=md, ci.low)$rating
+
+mse = mse[order(mse$rating),]
+mse$word <- factor(mse$word, levels =  as.character(mse$word))
+mse$condition <- factor(mse$condition,labels = c("mouth", "foot", "vocal"))
+mse$condition  = factor(mse$condition ,levels(mse$condition )[c(2,3,1)])
+
+pdf("/Users/mll/Desktop/Lewis_Fig4.pdf" ,width = 10, height = 6)
+
+#plot
+ggplot(mse, aes(fill=condition, y=rating, x=word)) +
+  geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=mse, mapping=aes(x=word, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw() +
+  xlab(" Word") + 
+  ylab("Rating") +
+  theme(axis.title=element_text(size=15), axis.text=element_text(size=10), title = element_text(size=20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_discrete(name="Semantic\nCondition") +
+  theme(legend.text = element_text(size = 12)) +
+  scale_fill_grey(start = 0, end = .9) +
+  scale_y_continuous(breaks=c(1:7)) +
+  ggtitle("Effort Norms") + 
+  theme(text = element_text(size=15),
+        axis.ticks = element_line(size = 1), 
+        plot.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line(color = 'black', size = 1.1),
+        plot.title = element_text(size=12, face="bold"))
+dev.off()
+
+
+```
+
+## plot by condition2 item
+```{r}
+ms <- aggregate(rating ~ word + condition + condition2, md, mean)
+ms$cih <- aggregate(rating ~ word + condition + condition2, data=md, ci.high)$rating
+ms$cil <- aggregate(rating ~ word + condition + condition2, data=md, ci.low)$rating
+
+ms = ms[order(ms$rating),]
+ms$word <- factor(ms$word, levels =  as.character(ms$word))
+
+
+#plot
+ ggplot(ms, aes(fill=condition2, y=rating, x=word,)) +
+geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=ms, mapping=aes(x=word, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw( ) +
+  xlab(" Word") + 
+  ylab("Effort Rating") +
+  ylim(0,7) +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15), title = element_text(size=20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+# Stats 
+```{r}
+#Experiment 1
+E1 = md[md$experiment == 1,]
+
+bysubj = aggregate(E1$rating, by = list(E1$MTurk.ID, E1$condition), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+bysubj = bysubj[bysubj$Subject != "A144CG4DJ1O4P3",]
+Intensity_Foot = bysubj[bysubj$Condition == "P", "TargetIntensity"]
+Intensity_Vocal = bysubj[bysubj$Condition== "V", "TargetIntensity"]
+t.test(Intensity_Foot, Intensity_Vocal, paired = TRUE)
+
+bysubj = aggregate(E1$rating, by = list(E1$MTurk.ID, E1$condition2), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+bysubj = bysubj[bysubj$Subject != "A144CG4DJ1O4P3",]
+Intensity_Foot = bysubj[bysubj$Condition == "H", "TargetIntensity"]
+Intensity_Vocal = bysubj[bysubj$Condition== "L", "TargetIntensity"]
+t.test(Intensity_Foot, Intensity_Vocal, paired = TRUE)
+
+
+#Both Expeirments
+bysubj = aggregate(md$rating, by = list(md$MTurk.ID, md$condition), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+bysubj = bysubj[bysubj$Subject != "A144CG4DJ1O4P3",]
+Intensity_Foot = bysubj[bysubj$Condition == "P", "TargetIntensity"]
+Intensity_Vocal = bysubj[bysubj$Condition== "V", "TargetIntensity"]
+t.test(Intensity_Foot, Intensity_Vocal, paired = TRUE)
+
+bysubj = aggregate(md$rating, by = list(md$MTurk.ID, md$condition2), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+bysubj = bysubj[bysubj$Subject != "A144CG4DJ1O4P3",]
+Intensity_H = bysubj[bysubj$Condition == "H", "TargetIntensity"]
+Intensity_L = bysubj[bysubj$Condition== "L", "TargetIntensity"]
+t.test(Intensity_H, Intensity_L, paired = TRUE)
+
+bysubj = aggregate(md$rating, by = list(md$MTurk.ID, md$condition), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+bysubj = bysubj[bysubj$Subject != "A144CG4DJ1O4P3",]
+Intensity_V = bysubj[bysubj$Condition == "V", "TargetIntensity"]
+Intensity_M = bysubj[bysubj$Condition== "M", "TargetIntensity"]
+t.test(Intensity_V, Intensity_M, paired = TRUE)
+
+
+
+```
+
+
+## Analyze loudness survey
+```{r}
+loud = loud[loud$Is.English.your.native.language. == "Y",]
+#remove subjects who did both studies
+loud = loud[loud$MTurk.ID != "AELOYBHVZFDW9",]
+loud = loud[loud$MTurk.ID != "A3P74FP62XNVYI",]
+
+md2<- melt(loud,id.vars=names(loud)[c(1:5, 36)],)
+names(md2)[c(7,8)] = c("word", "rating")
+  
+index <- match(md2$word, item$Word)
+md2$condition <- item$Condition[index]
+md2$condition2 <- item$Condition2[index]
+md2$experiment <- item$Experiment[index]
+```
+
+#plot by condition 2
+```{r}
+ms2 <- aggregate(rating ~ condition2, md2, mean)
+ms2$cih <- aggregate(rating ~ condition2, data=md2, ci.high)$rating
+ms2$cil <- aggregate(rating ~ condition2, data=md2, ci.low)$rating
+
+# rename factors
+ms2$condition2 <- factor(c("high", "low"))
+
+#plot
+  ggplot(ms2, aes(fill=condition2, y=rating, x=condition2)) +
+  geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=ms2, mapping=aes(x=condition2, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw( ) +
+  xlab("Condition") + 
+  ylab("Loudness Rating") +
+  ylim(0,7) +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15), title = element_text(size=20)) +
+  ggtitle ("By condition")
+```
+# Stats 
+```{r}
+#Experiment 1
+E1 = md2[md2$experiment == 1,]
+bysubj = aggregate(E1$rating, by = list(E1$MTurk.ID, E1$condition2), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+Intensity_H = bysubj[bysubj$Condition == "H", "TargetIntensity"]
+Intensity_L = bysubj[bysubj$Condition== "L", "TargetIntensity"]
+t.test(Intensity_H, Intensity_L, paired = TRUE)
+
+bysubj = aggregate(md2$rating, by = list(md2$MTurk.ID, md2$condition2), FUN = mean, na.rm=TRUE)
+names(bysubj) = c("Subject", "Condition","TargetIntensity")
+Intensity_H = bysubj[bysubj$Condition == "H", "TargetIntensity"]
+Intensity_L = bysubj[bysubj$Condition== "L", "TargetIntensity"]
+t.test(Intensity_H, Intensity_L, paired = TRUE)
+```
+#plot by condition2 item
+```{r}
+ms2i <- aggregate(rating ~ word  + condition2, md2, mean)
+ms2i$cih <- aggregate(rating ~ word  + condition2, data=md2, ci.high)$rating
+ms2i$cil <- aggregate(rating ~ word  + condition2, data=md2, ci.low)$rating
+
+
+ms2i = ms2i[order(ms2i$rating),]
+ms2i$word <- factor(ms2i$word, levels =  as.character(ms2i$word))
+
+#plot
+ ggplot(ms2i, aes(fill=condition2, y=rating, x=word)) +
+geom_bar(position= position_dodge(width=0.9)) +
+  geom_errorbar(data=ms2i, mapping=aes(x=word, ymax = rating+cih, ymin=rating-cil), width=0.2, size=1, color="black") + 
+  theme_bw( ) +
+  xlab(" Word") + 
+  ylab("Loudness Rating") +
+  ylim(0,7) +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15), title = element_text(size=20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+#write.csv(ms2i, "loudness_item_means.csv")
+
+```
+
+By item analysis
+```{r}
+
+int = read.csv("/Documents/CaLL/from work computer/Experiments/Activity/Data_Organized/Norming Studies/data/intensity_by_item.csv")
+
+# merge effort
+index <- match(int$words, mse$word)
+int$effort <- mse$rating[index]
+int$effort_cih <- mse$cih[index]
+int$effort_cil <- mse$cil[index]
+
+#merge loudness
+index <- match(int$words, ms2i$word)
+int$loud<- ms2i$rating[index]
+int$loud_cih <- ms2i$cih[index]
+int$loud_cil <- ms2i$cil[index]
+
+```
+
+#plot
+```{r}
+
+#effort
+ggplot(int, aes(effort , TargetIntensity, group = Condition, color = Condition))+
+  geom_point() + 
+  geom_smooth(method = "lm",   aes(color = Condition), formula = y ~ x) +
+  geom_errorbarh(aes(xmin=effort-effort_cil, xmax=effort+effort_cih), size=0.2, colour="black") +
+  geom_errorbar(aes(ymin=TargetIntensity+cih, ymax=TargetIntensity-cil), size=0.2, colour="black") +
+  theme_bw() +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15)) 
+
+#loud
+ggplot(int[int$loud != "NA",], aes(loud , TargetIntensity, group = Condition3, color = Condition3))+
+  geom_point() + 
+  geom_smooth(method = "lm",   aes(color = Condition3), formula = y ~ x) +
+  geom_errorbarh(aes(xmin=loud-loud_cil, xmax=loud+loud_cih), size=0.2, colour="black") +
+  geom_errorbar(aes(ymin=TargetIntensity+cih, ymax=TargetIntensity-cil), size=0.2, colour="black") +
+  theme_bw() +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15)) 
+
+
+```
+
+Look at residuals
+```{r}
+m = lm(Lg10WF ~ TargetIntensity, int)
+int = merge( int, m$residuals, by="row.names",all.x=T)
+names(int)[which(names(int) == "y")] = "residuals"
+
+ggplot(int[int$loud != "NA",], aes(loud , residuals, group = Condition, color = Condition))+
+  geom_point() + 
+  geom_smooth(method = "lm",   aes(color = Condition), formula = y ~ x) +
+  geom_errorbarh(aes(xmin=loud-loud_cil, xmax=loud+loud_cih), size=0.2, colour="black") +
+  theme_bw() +
+  theme(axis.title=element_text(size=20), axis.text=element_text(size=15)) 
+
+cor.test(int$residuals, int$loud)
+
+
+```
